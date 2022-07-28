@@ -716,9 +716,19 @@ impl Plot {
 
         // Enforce equal aspect ratio.
         if let Some(data_aspect) = data_aspect {
-            let preserve_y = linked_axes
-                .as_ref()
-                .map_or(false, |group| group.link_y && !group.link_x);
+            let y_clips_before_x = {
+                // Given the view aspect, data aspect, and data bounds, compute whether
+                // the x- or y-axis of the data will clip with the window first when
+                // scaled beyond a certain size.
+                let x_relative_range = (bounds.max[0] - bounds.min[0]) as f32 / size.x;
+                let y_relative_range =
+                    (bounds.max[1] - bounds.min[1]) as f32 * data_aspect / size.y;
+                y_relative_range > x_relative_range
+            };
+            let preserve_y = linked_axes.as_ref().map_or(
+                y_clips_before_x && auto_bounds.x && auto_bounds.y,
+                |group| group.link_y && !group.link_x,
+            );
             transform.set_aspect(data_aspect as f64, preserve_y);
         }
 
